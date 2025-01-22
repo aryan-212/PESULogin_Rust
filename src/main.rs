@@ -8,8 +8,8 @@ async fn main() {
 
     let result = client
         .login(
-            "parallax04", // the username
-            "gawarbench", // the password
+            "ADD_YOUR_USERNAME", // the username
+            "ADD_YOUR_PASSWORD", // the password
             "https://192.168.254.1:8090/login.xml",
         )
         .await;
