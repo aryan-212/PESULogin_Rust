@@ -7,11 +7,13 @@ pub struct LoginClient {
 
 impl LoginClient {
     pub fn new() -> Self {
-        Self {
-            client: reqwest::Client::builder()
-                .danger_accept_invalid_certs(true)
-                .build()
-                .expect("Failed to create client"),
+        let client = reqwest::Client::builder()
+            .danger_accept_invalid_certs(true)
+            .build();
+
+        match client {
+            Ok(client) => Self { client },
+            Err(e) => panic!("Failed to create client: {}", e),
         }
     }
 

@@ -1,6 +1,4 @@
 mod connection_initialisation;
-use crate::connection_initialisation::*;
-use reqwest;
 
 #[tokio::main]
 async fn main() {
