@@ -1,13 +1,15 @@
+use std::env;
 mod connection_initialisation;
 
 #[tokio::main]
 async fn main() {
+    let args: Vec<String> = env::args().collect();
     let client = connection_initialisation::LoginClient::new();
 
     let result = client
         .login(
-            "ADD_YOUR_USERNAME", // the username
-            "ADD_YOUR_PASSWORD", // the password
+            &args[1],
+            &args[2], // the password
             "https://192.168.254.1:8090/login.xml",
         )
         .await;
