@@ -24,30 +24,62 @@ jobs:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
 
+    - name: Install dependencies for cross-compilation (Linux → Windows)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt update
+        sudo apt install -y mingw-w64
+        rustup target add x86_64-pc-windows-gnu
+        rustup target add x86_64-unknown-linux-gnu
+
+    - name: Set Windows target for native Windows build
+      if: runner.os == 'Windows'
+      run: rustup target add x86_64-pc-windows-msvc
+
     - name: Build project
-      run: cargo build --release --verbose
+      run: |
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          cargo build --release --target x86_64-pc-windows-msvc
+        elif [[ "$RUNNER_OS" == "Linux" ]]; then
+          cargo build --release --target x86_64-unknown-linux-gnu
+          cargo build --release --target x86_64-pc-windows-gnu
+        else
+          cargo build --release
+        fi
+      shell: bash
 
     - name: Run tests
-      run: cargo test --release --verbose
+      run: |
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          cargo test --release --target x86_64-pc-windows-msvc
+        elif [[ "$RUNNER_OS" == "Linux" ]]; then
+          cargo test --release --target x86_64-unknown-linux-gnu
+        else
+          cargo test --release
+        fi
+      shell: bash
 
     - name: Prepare artifacts
-      run: |
-        OS_NAME="${{ runner.os }}"
-        if [ "$OS_NAME" == "Windows" ]; then
-          ARTIFACT_NAME="my_project-windows.exe"
-          mv target/release/my_project.exe $ARTIFACT_NAME
-        else
-          ARTIFACT_NAME="my_project-${OS_NAME,,}"
-          mv target/release/my_project $ARTIFACT_NAME
-        fi
-        echo "ARTIFACT_NAME=$ARTIFACT_NAME" >> $GITHUB_ENV
       shell: bash
+      run: |
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          mv target/x86_64-pc-windows-msvc/release/my_project.exe my_project-windows.exe
+        elif [[ "$RUNNER_OS" == "Linux" ]]; then
+          mv target/x86_64-unknown-linux-gnu/release/my_project my_project-linux
+          mv target/x86_64-pc-windows-gnu/release/my_project.exe my_project-windows-cross.exe
+        else
+          mv target/release/my_project my_project-macos
+        fi
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ env.ARTIFACT_NAME }}
-        path: ${{ env.ARTIFACT_NAME }}
+        name: ${{ matrix.os }}-artifact
+        path: |
+          my_project-linux
+          my_project-macos
+          my_project-windows.exe
+          my_project-windows-cross.exe
 
   release:
     needs: build
@@ -60,14 +92,27 @@ jobs:
 
     - name: Download artifacts
       uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: List downloaded artifacts
+      run: ls -R artifacts
+
+    - name: Move artifacts to correct filenames
+      run: |
+        mv artifacts/ubuntu-latest-artifact/my_project-linux my_project-linux
+        mv artifacts/macos-latest-artifact/my_project-macos my_project-macos
+        mv artifacts/windows-latest-artifact/my_project-windows.exe my_project-windows.exe
+        mv artifacts/ubuntu-latest-artifact/my_project-windows-cross.exe my_project-windows-cross.exe
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
         files: |
-          my_project-ubuntu
+          my_project-linux
           my_project-macos
           my_project-windows.exe
+          my_project-windows-cross.exe
         tag_name: v1.0.${{ github.run_number }}
         release_name: Release v1.0.${{ github.run_number }}
         draft: false
