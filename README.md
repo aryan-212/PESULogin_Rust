@@ -3,7 +3,7 @@
 An _oxidised_ version of [PESUAutoLogin](https://github.com/aryan-212/PESU_AutoLogin) in a small executable.
 
 ## Installation
-
+Replace `user` and `pass` with actual usename and password respectively
 ```bash
 git clone https://github.com/aryan-212/PESULogin_Rust.git
 cd PESULogin_Rust/
