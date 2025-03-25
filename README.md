@@ -8,7 +8,7 @@ An _oxidised_ version of [PESUAutoLogin](https://github.com/aryan-212/PESU_AutoL
 git clone https://github.com/aryan-212/PESULogin_Rust.git
 cd PESULogin_Rust/
 WIFI_USERNAME=user WIFI_PASSWORD=pass cargo build --release
-sudo cp $HOME/PESULogin_Rust/target/debug/pesu_login_test /usr/bin/pesulogin
+sudo cp $HOME/PESULogin_Rust/target/release/pesu_login_test /usr/bin/pesulogin
 ```
 
 ## Usage
