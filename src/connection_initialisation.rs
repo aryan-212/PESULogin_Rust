@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use reqwest::Error;
+
 pub struct LoginClient {
     pub client: reqwest::Client,
 }
@@ -16,7 +18,7 @@ impl LoginClient {
         }
     }
 
-    pub async fn login(&self, username: &str, password: &str, url: &str) -> Result<String, String> {
+    pub async fn login(&self, username: &str, password: &str, url: &str) -> Result<String, Error> {
         let mut form_data = HashMap::new();
         form_data.insert("mode", "191");
         form_data.insert("username", username);
@@ -28,10 +30,8 @@ impl LoginClient {
             .post(url)
             .form(&form_data)
             .send()
-            .await
-            .map_err(|e| e.to_string())?
+            .await?
             .text()
             .await
-            .map_err(|e| e.to_string())
     }
 }
