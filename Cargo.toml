@@ -3,8 +3,14 @@ name = "pesu_login_test"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = []
+embedded_credentials = []
+
 [dependencies]
 reqwest = { version = "0.11", features = ["json"] }
 tokio = { version = "1", features = ["full"] }
 notify-rust = "0.8"
 dotenv = "0.15.0"
+clap = { version = "4.5.42", features = ["derive"] }
+
