@@ -1,44 +1,73 @@
+use clap::Parser;
 use dotenv::dotenv;
 use std::env;
 use std::process::Command;
+
 mod build;
 mod connection_initialisation;
-mod testing;
+
+#[derive(Parser, Debug)]
+#[command(name = "pesl", about = "Wi-Fi Login/Logout CLI")]
+struct Args {
+    /// Login to Wi-Fi
+    #[arg(long)]
+    login: bool,
+    
+    /// Logout from Wi-Fi
+    #[arg(long)]
+    logout: bool,
+}
 
 #[tokio::main]
 async fn main() {
-    // Read Wi-Fi credentials at runtime
     dotenv().ok();
+    let args = Args::parse();
 
-    let username = env::var("WIFI_USERNAME").unwrap_or_else(|_| "UnknownUser".to_string());
-    let password = env::var("WIFI_PASSWORD").unwrap_or_else(|_| "UnknownPassword".to_string());
+    // Use compile-time constants from build script
+    let username = env!("WIFI_USERNAME");
+    let password = env!("WIFI_PASSWORD");
 
-    println!("Using username: {}", username); // Debugging
+    // Both operations might use the same endpoint with different modes
+    const LOGIN_URL: &str = "https://192.168.254.1:8090/login.xml";
+    const LOGOUT_URL: &str = "https://192.168.254.1:8090/login.xml"; // Same endpoint, different mode
 
-    // Initialize the login client
     let client = connection_initialisation::LoginClient::new();
 
-    // Log in to the Wi-Fi
-    let result = client
-        .login(
-            &username, // Use the runtime username
-            &password, // Use the runtime password
-            "https://192.168.254.1:8090/login.xml",
-        )
-        .await;
+    println!("Using embedded credentials from build time");
 
-    // Handle the login result
-    match result {
-        Ok(_) => {
-            let output = Command::new("notify-send")
-                .arg("Wi-Fi Connected")
-                .arg(format!("Connected to {} successfully", username))
-                .output();
-
-            if output.is_err() {
-                eprintln!("Failed to send notification");
+    match (args.login, args.logout) {
+        (true, false) => {
+            // Login
+            match client.login(username, password, LOGIN_URL).await {
+                Ok(response) => {
+                    println!("Login attempt completed. Response: {}", response);
+                    let _ = Command::new("notify-send")
+                        .arg("Wi-Fi Login")
+                        .arg(format!("Login attempt for {} completed", username))
+                        .output();
+                }
+                Err(e) => eprintln!("Error: Login Failed with {e}"),
             }
-        }
-        Err(_) => eprintln!("Error:\nConnection Failed"),
+        },
+        (false, true) => {
+            // Logout
+            match client.logout(username, password, LOGOUT_URL).await {
+                Ok(response) => {
+                    println!("Logout attempt completed. Response: {}", response);
+                    let _ = Command::new("notify-send")
+                        .arg("Wi-Fi Logout")
+                        .arg(format!("Logout attempt for {} completed", username))
+                        .output();
+                }
+                Err(e) => eprintln!("Error: Logout Failed with {e}"),
+            }
+        },
+        (true, true) => {
+            eprintln!("Error: Cannot specify both --login and --logout");
+        },
+        (false, false) => {
+            eprintln!("Error: Must specify either --login or --logout");
+        },
     }
 }
+
