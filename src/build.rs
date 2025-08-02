@@ -1,25 +1,22 @@
 use std::env;
-use std::fs;
-use std::path::Path;
 
 fn main() {
-    let username = env::var("WIFI_USERNAME").unwrap_or_else(|_| "default_user".to_string());
-    let password = env::var("WIFI_PASSWORD").unwrap_or_else(|_| "default_pass".to_string());
+    // Get credentials from environment variables and pass them to the compiler
+    if let Ok(username) = env::var("WIFI_USERNAME") {
+        println!("cargo:rustc-env=WIFI_USERNAME={}", username);
+    } else {
+        eprintln!("Warning: WIFI_USERNAME not set, using default");
+        println!("cargo:rustc-env=WIFI_USERNAME=default_user");
+    }
 
-    let out_dir = env::var("OUT_DIR").unwrap();
-    let dest_path = Path::new(&out_dir).join("wifi_config.rs");
+    if let Ok(password) = env::var("WIFI_PASSWORD") {
+        println!("cargo:rustc-env=WIFI_PASSWORD={}", password);
+    } else {
+        eprintln!("Warning: WIFI_PASSWORD not set, using default");
+        println!("cargo:rustc-env=WIFI_PASSWORD=default_pass");
+    }
 
-    fs::write(
-        &dest_path,
-        format!(
-            r#"
-            pub const WIFI_USERNAME: &str = "{username}";
-            pub const WIFI_PASSWORD: &str = "{password}";
-            "#,
-        ),
-    )
-    .unwrap();
-
+    // Tell cargo to rerun if these environment variables change
     println!("cargo:rerun-if-env-changed=WIFI_USERNAME");
     println!("cargo:rerun-if-env-changed=WIFI_PASSWORD");
 }
