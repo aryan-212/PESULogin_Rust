@@ -12,7 +12,11 @@ sudo cp $HOME/PESULogin_Rust/target/release/pesu_login_test /usr/bin/pesulogin
 ```
 
 ## Usage
-
+### Logging in
 ```bash
-pesulogin
+pesulogin --login
+```
+### Logging out
+```bash
+pesulogin --logout
 ```
