@@ -17,10 +17,15 @@ sudo cp $HOME/PESULogin_Rust/target/release/pesu_login_test /usr/bin/pesulogin
 
 ```bash
 pesulogin login
+# Or if there is no WIFI_USERNAME and WIFI_PASSWORD env vars
+pesulogin login --username "WIFI_USERNAME" --password "WIFI_PASSWORD"
 ```
 
 ### Logging out
 
 ```bash
 pesulogin logout
+# Or if there is no WIFI_USERNAME and WIFI_PASSWORD env vars
+pesulogin logout --username "WIFI_USERNAME" --password "WIFI_PASSWORD"
+
 ```
