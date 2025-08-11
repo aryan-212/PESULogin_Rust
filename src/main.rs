@@ -3,14 +3,13 @@ use dotenv::dotenv;
 use std::env;
 use std::process::Command;
 mod connection_initialisation;
-
+use connection_initialisation::LoginClient;
 #[derive(Parser, Debug)]
 #[command(name = "pesl", about = "Wi-Fi Login/Logout CLI")]
 struct Args {
     #[command(subcommand)]
     command: Commands,
 }
-
 #[derive(Subcommand, Debug)]
 enum Commands {
     /// Logs in to PESU Wi-Fi
@@ -39,65 +38,53 @@ async fn main() {
     const LOGIN_URL: &str = "https://192.168.254.1:8090/login.xml";
     const LOGOUT_URL: &str = "https://192.168.254.1:8090/logout.xml";
 
-    let client = connection_initialisation::LoginClient::new();
+    let client = LoginClient::new();
 
     println!("Using embedded credentials from build time");
 
     match args.command {
         Commands::Login { username, password } => {
-            if let (Some(name), Some(pass)) = (username, password) {
-                match client.login(&name, &pass, LOGIN_URL).await {
-                    Ok(response) => {
-                        println!("Login attempt completed. Response: {}", response);
-                        notify_user(
-                            "Wi-Fi Login",
-                            &format!("Login attempt for {} completed", name),
-                        );
-                    }
-                    Err(e) => eprintln!("Error: Login failed with {}", e),
+            match client
+                .handle_request(
+                    true, // is_login = true
+                    username.as_deref(),
+                    password.as_deref(),
+                    LOGIN_URL,
+                    LOGOUT_URL,
+                )
+                .await
+            {
+                Ok(response) => {
+                    println!("Login attempt completed. Response: {}", response);
+                    let name = username.unwrap_or_else(|| env::var("WIFI_USERNAME").unwrap());
+                    notify_user(
+                        "Wi-Fi Login",
+                        &format!("Login attempt for {} completed", name),
+                    );
                 }
-            } else {
-                println!("Using the embedded login creds");
-                let name = env::var("WIFI_USERNAME").unwrap();
-                let pass = env::var("WIFI_PASSWORD").unwrap();
-                match client.login(&name, &pass, LOGIN_URL).await {
-                    Ok(response) => {
-                        println!("Login attempt completed. Response: {}", response);
-                        notify_user(
-                            "Wi-Fi Login",
-                            &format!("Login attempt for {} completed", name),
-                        );
-                    }
-                    Err(e) => eprintln!("Error: Login failed with {}", e),
-                }
+                Err(e) => eprintln!("Error: Login failed with {}", e),
             }
         }
         Commands::Logout { username, password } => {
-            if let (Some(name), Some(pass)) = (username, password) {
-                match client.logout(&name, &pass, LOGOUT_URL).await {
-                    Ok(response) => {
-                        println!("Login attempt completed. Response: {}", response);
-                        notify_user(
-                            "Wi-Fi Login",
-                            &format!("Login attempt for {} completed", name),
-                        );
-                    }
-                    Err(e) => eprintln!("Error: Login failed with {}", e),
+            match client
+                .handle_request(
+                    false, // is_login = false
+                    username.as_deref(),
+                    password.as_deref(),
+                    LOGIN_URL,
+                    LOGOUT_URL,
+                )
+                .await
+            {
+                Ok(response) => {
+                    println!("Logout attempt completed. Response: {}", response);
+                    let name = username.unwrap_or_else(|| env::var("WIFI_USERNAME").unwrap());
+                    notify_user(
+                        "Wi-Fi Logout",
+                        &format!("Logout attempt for {} completed", name),
+                    );
                 }
-            } else {
-                println!("Using the embedded login creds");
-                let name = env::var("WIFI_USERNAME").unwrap();
-                let pass = env::var("WIFI_PASSWORD").unwrap();
-                match client.logout(&name, &pass, LOGOUT_URL).await {
-                    Ok(response) => {
-                        println!("Login attempt completed. Response: {}", response);
-                        notify_user(
-                            "Wi-Fi Login",
-                            &format!("Login attempt for {} completed", name),
-                        );
-                    }
-                    Err(e) => eprintln!("Error: Login failed with {}", e),
-                }
+                Err(e) => eprintln!("Error: Logout failed with {}", e),
             }
         }
     }
@@ -105,5 +92,5 @@ async fn main() {
 
 /// Send a desktop notification using notify-send
 fn notify_user(title: &str, message: &str) {
-    let _ = Command::new("notify-send").arg(title).arg(message).output();
+    Command::new("notify-send").arg(title).arg(message);
 }
